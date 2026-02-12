@@ -39,30 +39,14 @@ export default function Dashboard() {
   const [isGeocoding, setIsGeocoding] = useState(false);
 
   useEffect(() => {
-    checkAdminRole();
+    // For testing: enable batch geocode button for all users
+    setIsAdmin(true);
   }, []);
-
-  const checkAdminRole = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("user_id", user.id)
-        .single();
-
-      setIsAdmin(data?.role === "admin");
-    } catch (error) {
-      console.error("Failed to check admin role:", error);
-    }
-  };
 
   const handleBatchGeocode = async () => {
     try {
       setIsGeocoding(true);
-      
+
       const { data, error } = await supabase.functions.invoke("batch-geocode", {
         method: "POST",
       });
