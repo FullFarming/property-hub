@@ -1,6 +1,10 @@
 /**
  * 네이버 지도 Geocoder 유틸리티
+ * Edge Function을 통해 서버사이드에서 Geocoding 처리
+ * 클라이언트 SDK(naver.maps.Service)도 폴백으로 지원
  */
+
+import { supabase } from "@/integrations/supabase/client";
 
 interface GeocodingResult {
   lat: number;
@@ -9,7 +13,62 @@ interface GeocodingResult {
   jibunAddress?: string;
 }
 
-export function geocodeAddress(address: string): Promise<GeocodingResult | null> {
+/**
+ * 주소를 좌표로 변환 (Edge Function 우선, 클라이언트 SDK 폴백)
+ */
+export async function geocodeAddress(address: string): Promise<GeocodingResult | null> {
+  // 1) Edge Function 호출 시도
+  try {
+    const { data, error } = await supabase.functions.invoke("geocode", {
+      body: { address },
+    });
+
+    if (!error && data?.success) {
+      return {
+        lat: data.latitude,
+        lng: data.longitude,
+        roadAddress: data.roadAddress || undefined,
+        jibunAddress: data.jibunAddress || undefined,
+      };
+    }
+  } catch {
+    // Edge function 실패 시 클라이언트 SDK 폴백
+  }
+
+  // 2) 클라이언트 SDK 폴백
+  return geocodeAddressClient(address);
+}
+
+/**
+ * 좌표를 주소로 변환 (Edge Function 우선, 클라이언트 SDK 폴백)
+ */
+export async function reverseGeocodeCoord(
+  lat: number,
+  lng: number
+): Promise<{ roadAddress: string; jibunAddress: string } | null> {
+  // 1) Edge Function 호출 시도
+  try {
+    const { data, error } = await supabase.functions.invoke("reverse-geocode", {
+      body: { latitude: lat, longitude: lng },
+    });
+
+    if (!error && data?.success) {
+      return {
+        roadAddress: data.roadAddress || "",
+        jibunAddress: data.jibunAddress || "",
+      };
+    }
+  } catch {
+    // Edge function 실패 시 클라이언트 SDK 폴백
+  }
+
+  // 2) 클라이언트 SDK 폴백
+  return reverseGeocodeCoordClient(lat, lng);
+}
+
+// ── 클라이언트 SDK 폴백 함수들 ──
+
+function geocodeAddressClient(address: string): Promise<GeocodingResult | null> {
   return new Promise((resolve) => {
     if (!window.naver?.maps?.Service) {
       console.warn("네이버 지도 Geocoder가 로드되지 않았습니다.");
@@ -42,7 +101,7 @@ export function geocodeAddress(address: string): Promise<GeocodingResult | null>
   });
 }
 
-export function reverseGeocodeCoord(
+function reverseGeocodeCoordClient(
   lat: number,
   lng: number
 ): Promise<{ roadAddress: string; jibunAddress: string } | null> {
