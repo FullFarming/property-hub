@@ -1,7 +1,33 @@
 import { MapPin, Search } from "lucide-react";
+import { useState, useEffect } from "react";
 import { ListingFormData } from "./types";
 import { FormField, SectionHeader } from "./FormField";
 import { Checkbox } from "@/components/ui/checkbox";
+import NaverMap from "@/components/NaverMap";
+
+function NaverMapPreview({ address }: { address: string }) {
+  const [center, setCenter] = useState({ lat: 37.5665, lng: 126.978 });
+
+  useEffect(() => {
+    if (!address || !window.naver?.maps?.Service) return;
+    window.naver.maps.Service.geocode({ query: address }, (status: any, response: any) => {
+      if (status !== window.naver.maps.Service.Status.OK) return;
+      const result = response.v2?.addresses?.[0];
+      if (result) {
+        setCenter({ lat: parseFloat(result.y), lng: parseFloat(result.x) });
+      }
+    });
+  }, [address]);
+
+  return (
+    <NaverMap
+      className="w-full h-40 rounded-xl border border-border overflow-hidden"
+      center={center}
+      zoom={16}
+      markers={[{ lat: center.lat, lng: center.lng }]}
+    />
+  );
+}
 
 interface Props {
   data: ListingFormData;
@@ -118,9 +144,13 @@ export default function LocationSection({ data, onChange }: Props) {
       </FormField>
 
       {/* 지도 미리보기 */}
-      <div className="w-full h-40 rounded-xl bg-muted flex items-center justify-center text-sm text-muted-foreground border border-border">
-        주소 입력 시 지도가 표시됩니다
-      </div>
+      {data.roadAddress || data.dong ? (
+        <NaverMapPreview address={data.roadAddress || `${data.sido} ${data.gugun} ${data.dong}`} />
+      ) : (
+        <div className="w-full h-40 rounded-xl bg-muted flex items-center justify-center text-sm text-muted-foreground border border-border">
+          주소 입력 시 지도가 표시됩니다
+        </div>
+      )}
 
       {/* 위치 공개 설정 */}
       <FormField label="위치 공개 설정">
