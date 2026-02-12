@@ -9,6 +9,7 @@ import Listings from "./pages/Listings";
 import ListingDetail from "./pages/ListingDetail";
 import MapView from "./pages/MapView";
 import Buildings from "./pages/Buildings";
+import Customers from "./pages/Customers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/map" element={<MapView />} />
             <Route path="/buildings" element={<Buildings />} />
             <Route path="/buildings/:id" element={<Buildings />} />
+            <Route path="/customers" element={<Customers />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
