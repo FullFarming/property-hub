@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Building2, MapPin, Search, SlidersHorizontal, Plus, ChevronDown, ArrowUpDown, Eye } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import ListingFormModal from "@/components/listings/ListingFormModal";
 
 const mockListings = [
   { id: "39597", name: "한성빌딩", address: "서울 종로구 낙원동 196", price: 16000000000, priceLabel: "160억", landArea: 151.01, grossArea: 269.1, yieldRate: null, status: "준비", type: "매매", category: "수익형", tags: ["역세권", "대로변"], assignee: "김현준", updatedAt: "2026-02-11" },
@@ -23,6 +24,7 @@ const statusColor: Record<string, string> = {
 
 export default function Listings() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [showForm, setShowForm] = useState(false);
   const navigate = useNavigate();
 
   const filtered = mockListings.filter(
@@ -41,7 +43,7 @@ export default function Listings() {
           <p className="text-body text-muted-foreground mt-1">총 {filtered.length}건의 매물</p>
         </div>
         <button
-          onClick={() => navigate("/listings/new")}
+          onClick={() => setShowForm(true)}
           className="flex items-center gap-2 h-11 px-5 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 transition-default"
         >
           <Plus className="h-4 w-4" />
@@ -138,6 +140,7 @@ export default function Listings() {
           </table>
         </div>
       </motion.div>
+      <ListingFormModal open={showForm} onClose={() => setShowForm(false)} />
     </div>
   );
 }
