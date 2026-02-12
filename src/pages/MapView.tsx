@@ -33,6 +33,12 @@ export default function MapView() {
       lng: Number(l.buildings.longitude),
       title: l.buildings.name,
       customIcon: `<div style="background: hsl(var(--primary)); color: white; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.2); border: 2px solid white; cursor: pointer;">${l.sale_price ? Math.round(l.sale_price / 100000000) + "억" : "가격미정"}</div>`,
+      content: `<div style="background: white; border-radius: 12px; padding: 14px 16px; min-width: 220px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); font-family: 'Pretendard', sans-serif;">
+        <p style="font-size: 14px; font-weight: 700; margin: 0 0 4px;">${l.buildings.name}</p>
+        <p style="font-size: 12px; color: #6b7280; margin: 0 0 8px;">${l.buildings.address_road || l.buildings.address_jibun || ""}</p>
+        <p style="font-size: 15px; font-weight: 800; color: hsl(var(--primary)); margin: 0;">${formatPrice(l.sale_price)}</p>
+        ${l.listing_type ? `<span style="display: inline-block; margin-top: 6px; font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #f3f4f6; color: #374151;">${l.listing_type === "sale" ? "매매" : l.listing_type === "jeonse" ? "전세" : l.listing_type === "monthly" ? "월세" : l.listing_type}</span>` : ""}
+      </div>`,
       onClick: () => setSelectedId(l.id),
     }));
 
