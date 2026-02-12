@@ -4,28 +4,45 @@ import { ListingFormData } from "./types";
 import { FormField, SectionHeader } from "./FormField";
 import { Checkbox } from "@/components/ui/checkbox";
 import NaverMap from "@/components/NaverMap";
+import { geocodeAddress } from "@/lib/geocode";
 
 function NaverMapPreview({ address }: { address: string }) {
   const [center, setCenter] = useState({ lat: 37.5665, lng: 126.978 });
+  const [found, setFound] = useState(false);
 
   useEffect(() => {
-    if (!address || !window.naver?.maps?.Service) return;
-    window.naver.maps.Service.geocode({ query: address }, (status: any, response: any) => {
-      if (status !== window.naver.maps.Service.Status.OK) return;
-      const result = response.v2?.addresses?.[0];
+    if (!address || address.trim().length < 3) {
+      setFound(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      const result = await geocodeAddress(address);
       if (result) {
-        setCenter({ lat: parseFloat(result.y), lng: parseFloat(result.x) });
+        setCenter({ lat: result.lat, lng: result.lng });
+        setFound(true);
+      } else {
+        setFound(false);
       }
-    });
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, [address]);
 
   return (
-    <NaverMap
-      className="w-full h-40 rounded-xl border border-border overflow-hidden"
-      center={center}
-      zoom={16}
-      markers={[{ lat: center.lat, lng: center.lng }]}
-    />
+    <div className="relative">
+      <NaverMap
+        className="w-full h-40 rounded-xl border border-border overflow-hidden"
+        center={center}
+        zoom={16}
+        markers={found ? [{ lat: center.lat, lng: center.lng }] : []}
+      />
+      {!found && address && address.trim().length >= 3 && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-xl">
+          <p className="text-sm text-muted-foreground">주소를 찾을 수 없습니다</p>
+        </div>
+      )}
+    </div>
   );
 }
 
