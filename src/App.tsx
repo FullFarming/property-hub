@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import Listings from "./pages/Listings";
 import ListingDetail from "./pages/ListingDetail";
 import MapView from "./pages/MapView";
+import Buildings from "./pages/Buildings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,8 @@ const App = () => (
             <Route path="/listings" element={<Listings />} />
             <Route path="/listings/:id" element={<ListingDetail />} />
             <Route path="/map" element={<MapView />} />
+            <Route path="/buildings" element={<Buildings />} />
+            <Route path="/buildings/:id" element={<Buildings />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
