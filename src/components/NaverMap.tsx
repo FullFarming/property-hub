@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { forwardRef, useEffect, useRef, useCallback, useState, useImperativeHandle } from "react";
 
 declare global {
   interface Window {
@@ -29,21 +29,29 @@ interface NaverMapProps {
   showZoomControl?: boolean;
 }
 
-export default function NaverMap({
-  center = { lat: 37.5665, lng: 126.978 },
-  zoom = 14,
-  className = "",
-  markers = [],
-  onMapClick,
-  onBoundsChanged,
-  onZoomChanged,
-  showZoomControl = true,
-}: NaverMapProps) {
+const SCRIPT_ID = "naver-maps-sdk";
+const CLIENT_ID = "66c0ciai3b";
+
+const NaverMap = forwardRef<HTMLDivElement, NaverMapProps>(function NaverMap(
+  {
+    center = { lat: 37.5665, lng: 126.978 },
+    zoom = 14,
+    className = "",
+    markers = [],
+    onMapClick,
+    onBoundsChanged,
+    onZoomChanged,
+    showZoomControl = true,
+  },
+  forwardedRef
+) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const markerInstances = useRef<any[]>([]);
   const infoWindowInstances = useRef<any[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  useImperativeHandle(forwardedRef, () => mapRef.current as HTMLDivElement);
 
   const clearMarkers = useCallback(() => {
     markerInstances.current.forEach((m) => m.setMap(null));
@@ -54,32 +62,42 @@ export default function NaverMap({
 
   // SDK 동적 로드
   useEffect(() => {
-    // Check if SDK is already loaded AND functional (not broken by bad key)
+    // Already loaded and functional
     if (window.naver?.maps?.Map) {
       setIsLoaded(true);
       return;
     }
 
-    const clientId = import.meta.env.VITE_NAVER_MAPS_CLIENT_ID || "66c0ciai3b";
+    const clientId = import.meta.env.VITE_NAVER_MAPS_CLIENT_ID || CLIENT_ID;
     if (!clientId) {
       console.error("VITE_NAVER_MAPS_CLIENT_ID is not set.");
       return;
     }
 
-    // Remove any existing broken scripts
-    const existingScripts = document.querySelectorAll('script[src*="oapi.map.naver.com"]');
-    existingScripts.forEach((s) => s.remove());
-    // Clear broken naver object
-    if (window.naver) {
-      delete (window as any).naver;
+    // If script tag already exists, wait for it
+    const existing = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null;
+    if (existing) {
+      const waitForMaps = () => {
+        if (window.naver?.maps?.Map) {
+          setIsLoaded(true);
+          return;
+        }
+        setTimeout(waitForMaps, 100);
+      };
+      waitForMaps();
+      return;
     }
 
     const script = document.createElement("script");
-    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${clientId}&submodules=geocoder`;
+    script.id = SCRIPT_ID;
     script.async = true;
+    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${encodeURIComponent(clientId)}&submodules=geocoder`;
     script.onload = () => {
       const waitForMaps = () => {
-        if (window.naver?.maps?.Map) { setIsLoaded(true); return; }
+        if (window.naver?.maps?.Map) {
+          setIsLoaded(true);
+          return;
+        }
         setTimeout(waitForMaps, 100);
       };
       waitForMaps();
@@ -205,4 +223,6 @@ export default function NaverMap({
   }
 
   return <div ref={mapRef} className={className} />;
-}
+});
+
+export default NaverMap;
