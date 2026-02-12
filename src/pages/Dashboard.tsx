@@ -1,11 +1,12 @@
 import { Building2, TrendingUp, Users, FileText, ArrowUpRight, ArrowDownRight, MapPin } from "lucide-react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 const stats = [
-  { label: "전체 매물", value: "1,284", change: "+12", up: true, icon: Building2 },
-  { label: "이번 달 거래", value: "38", change: "+5", up: true, icon: TrendingUp },
-  { label: "관리 고객", value: "562", change: "+24", up: true, icon: Users },
-  { label: "신규 매물", value: "47", change: "-3", up: false, icon: FileText },
+  { label: "전체 매물", value: "1,284", change: "+12", up: true, icon: Building2, path: "/listings" },
+  { label: "이번 달 거래", value: "38", change: "+5", up: true, icon: TrendingUp, path: "/listings" },
+  { label: "관리 고객", value: "562", change: "+24", up: true, icon: Users, path: "/customers" },
+  { label: "신규 매물", value: "47", change: "-3", up: false, icon: FileText, path: "/listings" },
 ];
 
 const recentListings = [
@@ -30,6 +31,8 @@ const fadeIn = {
 };
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -47,7 +50,8 @@ export default function Dashboard() {
             initial="hidden"
             animate="visible"
             variants={fadeIn}
-            className="bg-card rounded-lg p-5 card-shadow border border-border"
+            className="bg-card rounded-lg p-5 card-shadow border border-border cursor-pointer hover:border-primary/30 transition-default"
+            onClick={() => navigate(stat.path)}
           >
             <div className="flex items-center justify-between mb-3">
               <span className="text-caption text-muted-foreground">{stat.label}</span>
