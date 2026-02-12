@@ -1,10 +1,12 @@
-import { forwardRef, useEffect, useRef, useCallback, useState, useImperativeHandle } from "react";
-
-declare global {
-  interface Window {
-    naver: any;
-  }
-}
+import {
+  forwardRef,
+  useEffect,
+  useRef,
+  useCallback,
+  useState,
+  useImperativeHandle,
+} from "react";
+import { loadNaverMaps } from "@/utils/loadNaverMaps";
 
 interface MarkerData {
   lat: number;
@@ -29,9 +31,6 @@ interface NaverMapProps {
   showZoomControl?: boolean;
 }
 
-const SCRIPT_ID = "naver-maps-sdk";
-const CLIENT_ID = "66c0ciai3b";
-
 const NaverMap = forwardRef<HTMLDivElement, NaverMapProps>(function NaverMap(
   {
     center = { lat: 37.5665, lng: 126.978 },
@@ -50,6 +49,7 @@ const NaverMap = forwardRef<HTMLDivElement, NaverMapProps>(function NaverMap(
   const markerInstances = useRef<any[]>([]);
   const infoWindowInstances = useRef<any[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useImperativeHandle(forwardedRef, () => mapRef.current as HTMLDivElement);
 
@@ -60,52 +60,31 @@ const NaverMap = forwardRef<HTMLDivElement, NaverMapProps>(function NaverMap(
     infoWindowInstances.current = [];
   }, []);
 
-  // SDK 동적 로드
+  // SDK 로드
   useEffect(() => {
-    // Already loaded and functional
-    if (window.naver?.maps?.Map) {
-      setIsLoaded(true);
+    let cancelled = false;
+    const ncpKeyId = import.meta.env.VITE_NAVER_MAPS_CLIENT_ID || "66c0ciai3b";
+
+    if (!ncpKeyId) {
+      setError("VITE_NAVER_MAPS_CLIENT_ID is not set.");
       return;
     }
 
-    const clientId = import.meta.env.VITE_NAVER_MAPS_CLIENT_ID || CLIENT_ID;
-    if (!clientId) {
-      console.error("VITE_NAVER_MAPS_CLIENT_ID is not set.");
-      return;
-    }
+    loadNaverMaps(ncpKeyId, ["geocoder"]).then((res) => {
+      if (cancelled) return;
+      if (res.ok) {
+        setIsLoaded(true);
+        setError(null);
+      } else {
+        const reason = "reason" in res ? res.reason : "Unknown error";
+        console.error("Naver Maps SDK load failed:", reason);
+        setError(reason);
+      }
+    });
 
-    // If script tag already exists, wait for it
-    const existing = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null;
-    if (existing) {
-      const waitForMaps = () => {
-        if (window.naver?.maps?.Map) {
-          setIsLoaded(true);
-          return;
-        }
-        setTimeout(waitForMaps, 100);
-      };
-      waitForMaps();
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.id = SCRIPT_ID;
-    script.async = true;
-    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${encodeURIComponent(clientId)}&submodules=geocoder`;
-    script.onload = () => {
-      const waitForMaps = () => {
-        if (window.naver?.maps?.Map) {
-          setIsLoaded(true);
-          return;
-        }
-        setTimeout(waitForMaps, 100);
-      };
-      waitForMaps();
+    return () => {
+      cancelled = true;
     };
-    script.onerror = () => {
-      console.error("Failed to load Naver Maps SDK");
-    };
-    document.head.appendChild(script);
   }, []);
 
   // 지도 초기화
@@ -213,6 +192,15 @@ const NaverMap = forwardRef<HTMLDivElement, NaverMapProps>(function NaverMap(
       markerInstances.current.push(marker);
     });
   }, [markers, clearMarkers, isLoaded]);
+
+  if (error) {
+    return (
+      <div className={`${className} flex flex-col items-center justify-center bg-muted gap-2`}>
+        <p className="text-sm font-medium text-destructive">지도를 불러오지 못했습니다</p>
+        <p className="text-xs text-muted-foreground max-w-md text-center">{error}</p>
+      </div>
+    );
+  }
 
   if (!isLoaded) {
     return (
