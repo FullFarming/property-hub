@@ -63,7 +63,7 @@ const NaverMap = forwardRef<HTMLDivElement, NaverMapProps>(function NaverMap(
   // SDK 로드
   useEffect(() => {
     let cancelled = false;
-    const ncpKeyId = import.meta.env.VITE_NAVER_MAPS_CLIENT_ID || "66c0ciai3b";
+    const ncpKeyId = import.meta.env.VITE_NAVER_MAPS_CLIENT_ID;
 
     if (!ncpKeyId) {
       setError("VITE_NAVER_MAPS_CLIENT_ID is not set.");
