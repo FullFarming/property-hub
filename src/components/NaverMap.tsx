@@ -60,9 +60,9 @@ export default function NaverMap({
       return;
     }
 
-    const clientId = import.meta.env.VITE_NAVER_MAPS_CLIENT_ID;
+    const clientId = import.meta.env.VITE_NAVER_MAPS_CLIENT_ID || "66c0ciai3b";
     if (!clientId) {
-      console.error("VITE_NAVER_MAPS_CLIENT_ID is not set. Value:", clientId);
+      console.error("VITE_NAVER_MAPS_CLIENT_ID is not set.");
       return;
     }
 
