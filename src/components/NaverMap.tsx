@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 
 declare global {
   interface Window {
@@ -6,18 +6,27 @@ declare global {
   }
 }
 
+interface MarkerData {
+  lat: number;
+  lng: number;
+  title?: string;
+  content?: string;
+  customIcon?: string;
+  onClick?: () => void;
+}
+
 interface NaverMapProps {
   center?: { lat: number; lng: number };
   zoom?: number;
   className?: string;
-  markers?: Array<{
-    lat: number;
-    lng: number;
-    title?: string;
-    onClick?: () => void;
-  }>;
+  markers?: MarkerData[];
   onMapClick?: (lat: number, lng: number) => void;
-  onBoundsChanged?: (bounds: { sw: { lat: number; lng: number }; ne: { lat: number; lng: number } }) => void;
+  onBoundsChanged?: (bounds: {
+    sw: { lat: number; lng: number };
+    ne: { lat: number; lng: number };
+  }) => void;
+  onZoomChanged?: (zoom: number) => void;
+  showZoomControl?: boolean;
 }
 
 export default function NaverMap({
@@ -27,27 +36,47 @@ export default function NaverMap({
   markers = [],
   onMapClick,
   onBoundsChanged,
+  onZoomChanged,
+  showZoomControl = true,
 }: NaverMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const markerInstances = useRef<any[]>([]);
+  const infoWindowInstances = useRef<any[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const clearMarkers = useCallback(() => {
     markerInstances.current.forEach((m) => m.setMap(null));
     markerInstances.current = [];
+    infoWindowInstances.current.forEach((iw) => iw.close());
+    infoWindowInstances.current = [];
   }, []);
 
-  // Initialize map
+  // SDK 로드 대기
   useEffect(() => {
-    if (!mapRef.current || !window.naver?.maps) return;
+    const checkLoaded = () => {
+      if (window.naver?.maps) {
+        setIsLoaded(true);
+        return;
+      }
+      setTimeout(checkLoaded, 100);
+    };
+    checkLoaded();
+  }, []);
+
+  // 지도 초기화
+  useEffect(() => {
+    if (!mapRef.current || !isLoaded) return;
 
     const map = new window.naver.maps.Map(mapRef.current, {
       center: new window.naver.maps.LatLng(center.lat, center.lng),
       zoom,
-      zoomControl: true,
+      zoomControl: showZoomControl,
       zoomControlOptions: {
         position: window.naver.maps.Position.TOP_RIGHT,
       },
+      mapTypeControl: false,
+      scaleControl: true,
     });
 
     mapInstance.current = map;
@@ -68,37 +97,86 @@ export default function NaverMap({
       });
     }
 
+    if (onZoomChanged) {
+      window.naver.maps.Event.addListener(map, "zoom_changed", (z: number) => {
+        onZoomChanged(z);
+      });
+    }
+
     return () => {
       clearMarkers();
       mapInstance.current = null;
     };
-  }, []);
+  }, [isLoaded]);
 
-  // Update center
+  // center 업데이트
   useEffect(() => {
     if (!mapInstance.current) return;
-    mapInstance.current.setCenter(new window.naver.maps.LatLng(center.lat, center.lng));
+    mapInstance.current.setCenter(
+      new window.naver.maps.LatLng(center.lat, center.lng)
+    );
   }, [center.lat, center.lng]);
 
-  // Update markers
+  // zoom 업데이트
   useEffect(() => {
-    if (!mapInstance.current || !window.naver?.maps) return;
+    if (!mapInstance.current) return;
+    mapInstance.current.setZoom(zoom);
+  }, [zoom]);
+
+  // 마커 업데이트
+  useEffect(() => {
+    if (!mapInstance.current || !isLoaded) return;
     clearMarkers();
 
     markers.forEach((m) => {
-      const marker = new window.naver.maps.Marker({
+      const markerOptions: any = {
         position: new window.naver.maps.LatLng(m.lat, m.lng),
         map: mapInstance.current,
-        title: m.title || "",
-      });
+      };
 
-      if (m.onClick) {
+      if (m.customIcon) {
+        markerOptions.icon = {
+          content: m.customIcon,
+          anchor: new window.naver.maps.Point(20, 20),
+        };
+      }
+
+      const marker = new window.naver.maps.Marker(markerOptions);
+
+      if (m.content) {
+        const infoWindow = new window.naver.maps.InfoWindow({
+          content: m.content,
+          borderWidth: 0,
+          backgroundColor: "transparent",
+          disableAnchor: true,
+          pixelOffset: new window.naver.maps.Point(0, -10),
+        });
+
+        window.naver.maps.Event.addListener(marker, "click", () => {
+          if (infoWindow.getMap()) {
+            infoWindow.close();
+          } else {
+            infoWindow.open(mapInstance.current, marker);
+          }
+          m.onClick?.();
+        });
+
+        infoWindowInstances.current.push(infoWindow);
+      } else if (m.onClick) {
         window.naver.maps.Event.addListener(marker, "click", m.onClick);
       }
 
       markerInstances.current.push(marker);
     });
-  }, [markers, clearMarkers]);
+  }, [markers, clearMarkers, isLoaded]);
+
+  if (!isLoaded) {
+    return (
+      <div className={`${className} flex items-center justify-center bg-muted`}>
+        <p className="text-sm text-muted-foreground">지도를 불러오는 중...</p>
+      </div>
+    );
+  }
 
   return <div ref={mapRef} className={className} />;
 }
