@@ -1,6 +1,9 @@
-import { Building2, TrendingUp, Users, FileText, ArrowUpRight, ArrowDownRight, MapPin } from "lucide-react";
+import { Building2, TrendingUp, Users, FileText, ArrowUpRight, ArrowDownRight, MapPin, Zap, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 const stats = [
   { label: "전체 매물", value: "1,284", change: "+12", up: true, icon: Building2, path: "/listings" },
@@ -32,14 +35,84 @@ const fadeIn = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
+  useEffect(() => {
+    checkAdminRole();
+  }, []);
+
+  const checkAdminRole = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      setIsAdmin(data?.role === "admin");
+    } catch (error) {
+      console.error("Failed to check admin role:", error);
+    }
+  };
+
+  const handleBatchGeocode = async () => {
+    try {
+      setIsGeocoding(true);
+      
+      const { data, error } = await supabase.functions.invoke("batch-geocode", {
+        method: "POST",
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "지오코딩 완료",
+        description: `${data.success}개 건물의 좌표가 업데이트되었습니다. (실패: ${data.failed}개)`,
+      });
+    } catch (error) {
+      console.error("Batch geocoding failed:", error);
+      toast({
+        title: "오류",
+        description: "지오코딩 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-h1">대시보드</h1>
-        <p className="text-body text-muted-foreground mt-1">빌딩 투자 워크스페이스 현황을 한눈에 확인하세요.</p>
-      </div>
+       <div className="flex items-center justify-between">
+         <div>
+           <h1 className="text-h1">대시보드</h1>
+           <p className="text-body text-muted-foreground mt-1">빌딩 투자 워크스페이스 현황을 한눈에 확인하세요.</p>
+         </div>
+         {isAdmin && (
+           <button
+             onClick={handleBatchGeocode}
+             disabled={isGeocoding}
+             className="flex items-center gap-2 h-11 px-5 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-default"
+           >
+             {isGeocoding ? (
+               <>
+                 <Loader2 className="h-4 w-4 animate-spin" />
+                 지오코딩 중...
+               </>
+             ) : (
+               <>
+                 <Zap className="h-4 w-4" />
+                 일괄 지오코딩
+               </>
+             )}
+           </button>
+         )}
+       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
