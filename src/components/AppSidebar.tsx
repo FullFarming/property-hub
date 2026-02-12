@@ -22,9 +22,9 @@ import { cn } from "@/lib/utils";
 type Workspace = "building_invest" | "retail" | "office_lease";
 
 const workspaces: { id: Workspace; label: string; icon: React.ReactNode }[] = [
-  { id: "building_invest", label: "빌딩 투자", icon: <Building className="h-4 w-4" /> },
-  { id: "retail", label: "리테일 중개", icon: <Store className="h-4 w-4" /> },
-  { id: "office_lease", label: "오피스 임대관리", icon: <ClipboardList className="h-4 w-4" /> },
+  { id: "building_invest", label: "D-dive", icon: <Building className="h-4 w-4" /> },
+  { id: "retail", label: "Brokerage", icon: <Store className="h-4 w-4" /> },
+  { id: "office_lease", label: "BIS", icon: <ClipboardList className="h-4 w-4" /> },
 ];
 
 const menuItems = [
