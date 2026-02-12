@@ -52,16 +52,42 @@ export default function NaverMap({
     infoWindowInstances.current = [];
   }, []);
 
-  // SDK 로드 대기
+  // SDK 동적 로드
   useEffect(() => {
-    const checkLoaded = () => {
-      if (window.naver?.maps) {
-        setIsLoaded(true);
-        return;
-      }
-      setTimeout(checkLoaded, 100);
+    // Check if SDK is already loaded AND functional (not broken by bad key)
+    if (window.naver?.maps?.Map) {
+      setIsLoaded(true);
+      return;
+    }
+
+    const clientId = import.meta.env.VITE_NAVER_MAPS_CLIENT_ID;
+    if (!clientId) {
+      console.error("VITE_NAVER_MAPS_CLIENT_ID is not set. Value:", clientId);
+      return;
+    }
+
+    // Remove any existing broken scripts
+    const existingScripts = document.querySelectorAll('script[src*="oapi.map.naver.com"]');
+    existingScripts.forEach((s) => s.remove());
+    // Clear broken naver object
+    if (window.naver) {
+      delete (window as any).naver;
+    }
+
+    const script = document.createElement("script");
+    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${clientId}&submodules=geocoder`;
+    script.async = true;
+    script.onload = () => {
+      const waitForMaps = () => {
+        if (window.naver?.maps?.Map) { setIsLoaded(true); return; }
+        setTimeout(waitForMaps, 100);
+      };
+      waitForMaps();
     };
-    checkLoaded();
+    script.onerror = () => {
+      console.error("Failed to load Naver Maps SDK");
+    };
+    document.head.appendChild(script);
   }, []);
 
   // 지도 초기화
