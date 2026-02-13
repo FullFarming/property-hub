@@ -1,11 +1,4 @@
-import {
-  forwardRef,
-  useEffect,
-  useRef,
-  useCallback,
-  useState,
-  useImperativeHandle,
-} from "react";
+import { forwardRef, useEffect, useRef, useCallback, useState, useImperativeHandle } from "react";
 import { loadNaverMaps } from "@/utils/loadNaverMaps";
 
 interface MarkerData {
@@ -23,10 +16,7 @@ interface NaverMapProps {
   className?: string;
   markers?: MarkerData[];
   onMapClick?: (lat: number, lng: number) => void;
-  onBoundsChanged?: (bounds: {
-    sw: { lat: number; lng: number };
-    ne: { lat: number; lng: number };
-  }) => void;
+  onBoundsChanged?: (bounds: { sw: { lat: number; lng: number }; ne: { lat: number; lng: number } }) => void;
   onZoomChanged?: (zoom: number) => void;
   showZoomControl?: boolean;
 }
@@ -42,7 +32,7 @@ const NaverMap = forwardRef<HTMLDivElement, NaverMapProps>(function NaverMap(
     onZoomChanged,
     showZoomControl = true,
   },
-  forwardedRef
+  forwardedRef,
 ) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
@@ -135,9 +125,7 @@ const NaverMap = forwardRef<HTMLDivElement, NaverMapProps>(function NaverMap(
   // center 업데이트
   useEffect(() => {
     if (!mapInstance.current) return;
-    mapInstance.current.setCenter(
-      new window.naver.maps.LatLng(center.lat, center.lng)
-    );
+    mapInstance.current.setCenter(new window.naver.maps.LatLng(center.lat, center.lng));
   }, [center.lat, center.lng]);
 
   // zoom 업데이트
